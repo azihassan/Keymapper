@@ -1,0 +1,11 @@
+{
+	"name": "keymapper",
+	"description": "Small utility that allows a keyboard key to produce another value if maintained pressed.",
+	"copyright": "Copyright © 2015, Scroph",
+	"authors": ["Scroph"],
+	"stringImportPaths": ["source/"],
+	"lflags": ["-L/exet:nt/su:w"],
+	"dependencies": {
+		
+	}
+}
