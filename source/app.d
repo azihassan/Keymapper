@@ -1,39 +1,45 @@
-import std.stdio : writeln, File;
+import std.stdio : File;
+import std.algorithm : map;
 import std.exception : enforce;
 import std.datetime;
+import std.getopt : getopt;
 import std.file : exists;
-import std.string : indexOf;
+import std.string;
 import std.format : formattedRead;
-import std.conv;
+import std.array : array;
+import std.conv : to;
 import winapi;
 
 uint[uint] keyMaps;
 int lastKeyPressed;
 TickDuration lastTimePressed;
-enum interval = 150; //milliseconds
+uint interval = 150; //milliseconds
 StopWatch sw;
 
 int main(string[] args)
 {
-	sw.start();
+	if(args.length > 1)
+		interval = args[1].to!uint;
 	mixin("keyMaps = [" ~ import("keys.txt") ~ "];");
-	foreach(line; File("keys.txt").byLine)
+	if("keys.txt".exists)
 	{
-		uint key;
-		uint val;
-		writeln(line);
-		if(line.indexOf("VK_") == -1)
+		foreach(line; File("keys.txt").byLine)
 		{
-			line.formattedRead("0x%x: 0x%x,", &key, &val);
+			uint key;
+			uint val;
+			auto parts = line.split(":").map!strip.array;
+			if(parts[0].startsWith("VK_"))
+				key = parts[0].to!Keys;
+			else
+				parts[0].formattedRead("0x%x", &key);
+			if(parts[1].startsWith("VK_"))
+				val = parts[1].chomp(",").to!Keys;
+			else
+				parts[1].formattedRead("0x%x,", &val);
+			keyMaps[key] = val;
 		}
-		else
-		{
-			string vk_;
-			line.formattedRead("0x%x: %s,", &key, &vk_);
-			val = vk_.to!Keys;
-		}
-		keyMaps[key] = val;
 	}
+	sw.start();
 	auto hook = SetWindowsHookEx(WH_KEYBOARD_LL, cast(HOOKPROC) &kbdHook, null, 0);
 	enforce(hook, "Failed to register keyboard hook : " ~ GetLastError().to!string);
 	scope(exit)
