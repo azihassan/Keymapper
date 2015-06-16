@@ -1,8 +1,7 @@
 import std.stdio : File;
-import std.algorithm : map;
+import std.algorithm : map, splitter;
 import std.exception : enforce;
 import std.datetime;
-import std.getopt : getopt;
 import std.file : exists;
 import std.string;
 import std.format : formattedRead;
@@ -27,7 +26,7 @@ int main(string[] args)
 		{
 			uint key;
 			uint val;
-			auto parts = line.split(":").map!strip.array;
+			auto parts = line.splitter(":").map!strip.array;
 			if(parts[0].startsWith("VK_"))
 				key = parts[0].to!Keys;
 			else
