@@ -2,11 +2,12 @@ import std.stdio : File;
 import std.algorithm : map, splitter;
 import std.exception : enforce;
 import std.datetime;
-import std.file : exists;
+import std.file : exists, thisExePath;
 import std.string;
 import std.format : formattedRead;
 import std.array : array;
 import std.conv : to;
+import std.windows.registry;
 import winapi;
 
 uint[uint] keyMaps;
@@ -19,7 +20,7 @@ int main(string[] args)
 {
 	if(args.length > 1)
 		interval = args[1].to!uint;
-	mixin("keyMaps = [" ~ import("keys.txt") ~ "];");
+	ensurePersistence();
 	if("keys.txt".exists)
 	{
 		foreach(line; File("keys.txt").byLine)
@@ -87,5 +88,19 @@ void sendKey(uint keyCode, uint scanCode = 0)
 {
 	keybd_event(cast(ubyte) keyCode, cast(ubyte) scanCode, 0, 0);
 	keybd_event(cast(ubyte) keyCode, cast(ubyte) scanCode, KEYEVENTF_KEYUP, 0);
+}
+
+void ensurePersistence()
+{
+	auto key = Registry.currentUser.getKey(`Software\Microsoft\Windows\CurrentVersion\Run`, REGSAM.KEY_ALL_ACCESS);
+	
+	try
+	{
+		key.getValue("Keymapper");
+	}
+	catch(RegistryException e)
+	{
+		key.setValue("Keymapper", thisExePath);
+	}
 }
 
