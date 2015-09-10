@@ -2,13 +2,18 @@ import std.stdio : File;
 import std.algorithm : map, splitter;
 import std.exception : enforce;
 import std.datetime;
-import std.file : exists, thisExePath;
+import std.file : exists, thisExePath, getcwd;
 import std.string;
 import std.format : formattedRead;
 import std.array : array;
 import std.conv : to;
-import std.windows.registry;
+import std.path : buildPath;
 import winapi;
+
+debug
+{
+	import std.stdio: writefln, writeln;
+}
 
 uint[uint] keyMaps;
 int lastKeyPressed;
@@ -21,9 +26,10 @@ int main(string[] args)
 	if(args.length > 1)
 		interval = args[1].to!uint;
 	ensurePersistence();
-	if("keys.txt".exists)
+	auto keyFile = buildPath(getcwd(), "keys.txt");
+	if(keyFile.exists)
 	{
-		foreach(line; File("keys.txt").byLine)
+		foreach(line; File(keyFile).byLine)
 		{
 			uint key;
 			uint val;
@@ -62,6 +68,17 @@ extern(Windows) LRESULT kbdHook(int nCode, WPARAM wParam, LPARAM lParam)
 	if(nCode == 0)
 	{
 		auto pressed = hookStruct.vkCode;
+		debug
+		{
+			try
+			{
+				writeln("Pressed : ", pressed.to!Keys);
+			}
+			catch(Exception)
+			{
+				writefln("Pressed : %x", pressed);
+			}
+		}
 		if(wParam == WM_KEYDOWN)
 		{
 			lastKeyPressed = pressed;
@@ -69,8 +86,16 @@ extern(Windows) LRESULT kbdHook(int nCode, WPARAM wParam, LPARAM lParam)
 		}
 		else if(wParam == WM_KEYUP)
 		{
+			debug
+			{
+				writeln("\t", pressed, " == ", lastKeyPressed, " && ", keyMaps.get(pressed, 0), " != ", 0, " : ", pressed == lastKeyPressed && keyMaps.get(pressed, 0) != 0);
+			}
 			if(pressed == lastKeyPressed && keyMaps.get(pressed, 0) != 0)
 			{
+				debug
+				{
+					writeln("\t", lastTimePressed.msecs + interval, " < ", sw.peek().msecs);
+				}
 				if(lastTimePressed.msecs + interval < sw.peek().msecs)
 				{
 					lastKeyPressed = 0;
@@ -92,6 +117,7 @@ void sendKey(uint keyCode, uint scanCode = 0)
 
 void ensurePersistence()
 {
+	import std.windows.registry;
 	auto key = Registry.currentUser.getKey(`Software\Microsoft\Windows\CurrentVersion\Run`, REGSAM.KEY_ALL_ACCESS);
 	
 	try
